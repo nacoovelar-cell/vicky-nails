@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vicky Nails - Agendamiento de Turnos</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        nude: {
+                            50: '#FAF6F0',
+                            100: '#F4ECE1',
+                            200: '#E8D5C4',
+                            300: '#DDBFA7',
+                            400: '#D1A88A',
+                            500: '#C5926E',
+                            600: '#AA7452',
+                        },
+                        roseGold: '#B76E79',
+                        goldAccent: '#D4AF37'
+                    },
+                    fontFamily: {
+                        serif: ['Playfair Display', 'serif'],
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <!-- Font Awesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase App & Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #FAF6F0; }
+        .font-playfair { font-family: 'Playfair Display', serif; }
+        .bg-glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="text-gray-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Header Navigation -->
+    <header class="bg-white/80 backdrop-blur-md border-b border-nude-200 sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-nude-200 border border-goldAccent flex items-center justify-center text-nude-600 font-playfair font-bold text-xl shadow-sm">
+                    VN
+                </div>
+                <div>
+                    <h1 class="font-playfair font-bold text-lg text-nude-600 tracking-wide leading-tight">Vicky Nails</h1>
+                    <p class="text-xs text-gray-500">Agendamiento de Turnos</p>
+                </div>
+            </div>
+
+            <!-- View Switcher Tabs -->
+            <div class="flex bg-nude-100 p-1 rounded-xl">
+                <button id="tabClient" onclick="switchTab('client')" class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all shadow-sm bg-white text-nude-600">
+                    <i class="fa-regular font-bold fa-calendar-plus mr-1.5"></i>Reservar
+                </button>
+                <button id="tabAdmin" onclick="switchTab('admin')" class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-gray-600 hover:text-nude-600">
+                    <i class="fa-solid fa-user-lock mr-1.5"></i>Panel Admin
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-6xl mx-auto px-4 py-6 flex-grow w-full">
+
+        <!-- ==================== CLIENT VIEW ==================== -->
+        <section id="clientView" class="space-y-6">
+            <!-- Hero Banner -->
+            <div class="bg-gradient-to-r from-nude-200 via-nude-100 to-nude-50 rounded-2xl p-6 md:p-8 border border-nude-200 shadow-sm relative overflow-hidden">
+                <div class="max-w-xl z-10 relative">
+                    <span class="text-xs uppercase tracking-widest text-nude-600 font-semibold bg-white/70 px-3 py-1 rounded-full border border-nude-300">Reserva online</span>
+                    <h2 class="font-playfair text-2xl md:text-3xl font-bold text-gray-800 mt-2">Agenda tu cita en Vicky Nails 💅</h2>
+                    <p class="text-sm text-gray-600 mt-2">Selecciona el servicio, el día y la hora que mejor te convenga. Guardaremos tu lugar al instante.</p>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <!-- Form Section -->
+                <div class="md:col-span-2 bg-white rounded-2xl p-6 border border-nude-200 shadow-sm">
+                    <h3 class="font-playfair text-xl font-bold text-nude-600 mb-4 pb-2 border-b border-nude-100 flex items-center">
+                        <i class="fa-solid fa-list-check mr-2.5 text-nude-400"></i> Completa tus datos
+                    </h3>
+
+                    <form id="bookingForm" onsubmit="handleBookingSubmit(event)" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Nombre completo *</label>
+                                <input type="text" id="clientName" required placeholder="Ej. María Giménez" class="w-full px-3.5 py-2.5 rounded-xl border border-nude-200 focus:outline-none focus:ring-2 focus:ring-nude-400 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Teléfono (WhatsApp) *</label>
+                                <input type="tel" id="clientPhone" required placeholder="Ej. 0981 123456" class="w-full px-3.5 py-2.5 rounded-xl border border-nude-200 focus:outline-none focus:ring-2 focus:ring-nude-400 text-sm">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Servicio deseado *</label>
+                            <select id="serviceSelect" onchange="updateServiceDetails()" required class="w-full px-3.5 py-2.5 rounded-xl border border-nude-200 focus:outline-none focus:ring-2 focus:ring-nude-400 text-sm bg-white">
+                                <option value="" disabled selected>Selecciona un servicio</option>
+                                <option value="Semipermanente" data-price="45000" data-duration="30">Manicura Semipermanente (Gs. 45.000)</option>
+                                <option value="Soft Gel" data-price="60000" data-duration="90">Soft Gel (Gs. 60.000)</option>
+                                <option value="Capping Gel" data-price="75000" data-duration="60">Capping en Gel (Gs. 75.000)</option>
+                                <option value="Nivelacion" data-price="70000" data-duration="45">Nivelación (Gs. 70.000)</option>
+                                <option value="Retiro + Manicura Rusa" data-price="35000" data-duration="30">Retiro + Manicura Rusa (Gs. 35.000)</option>
+                                <option value="Nail Art / Diseños" data-price="25000" data-duration="30">Nail Art / Diseños Especiales (+Gs. 25.000)</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Fecha de la cita *</label>
+                                <input type="date" id="appointmentDate" required onchange="validateDate()" class="w-full px-3.5 py-2.5 rounded-xl border border-nude-200 focus:outline-none focus:ring-2 focus:ring-nude-400 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Hora estimada *</label>
+                                <select id="appointmentTime" required class="w-full px-3.5 py-2.5 rounded-xl border border-nude-200 focus:outline-none focus:ring-2 focus:ring-nude-400 text-sm bg-white">
+                                    <option value="" disabled selected>Elige un horario</option>
+                                    <option value="08:00">08:00 Hs</option>
+                                    <option value="09:30">09:30 Hs</option>
+                                    <option value="11:00">11:00 Hs</option>
+                                    <option value="14:00">14:00 Hs</option>
+                                    <option value="15:30">15:30 Hs</option>
+                                    <option value="17:00">17:00 Hs</option>
+                                    <option value="18:30">18:30 Hs</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Notas / Diseños de preferencia (Opcional)</label>
+                            <textarea id="clientNotes" rows="2" placeholder="Ej. Quiero tonos nude con detalles dorados..." class="w-full px-3.5 py-2.5 rounded-xl border border-nude-200 focus:outline-none focus:ring-2 focus:ring-nude-400 text-sm"></textarea>
+                        </div>
+
+                        <!-- Service Info Box -->
+                        <div id="serviceSummaryBox" class="hidden bg-nude-50 p-3.5 rounded-xl border border-nude-200 text-xs flex justify-between items-center">
+                            <div>
+                                <span class="text-gray-500">Duración aprox:</span> <strong id="summaryDuration" class="text-gray-700">-</strong>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">Precio estimado:</span> <strong id="summaryPrice" class="text-nude-600 font-bold text-sm">Gs. 0</strong>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="btnSubmitBooking" class="w-full py-3 bg-nude-500 hover:bg-nude-600 text-white font-medium rounded-xl shadow-md transition-all flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <span>Confirmar Reserva de Turno</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Info & Confirmation Card -->
+                <div class="space-y-4">
+                    <!-- Location & Details Card -->
+                    <div class="bg-white p-5 rounded-2xl border border-nude-200 shadow-sm text-sm space-y-3">
+                        <h4 class="font-playfair font-bold text-nude-600 text-base border-b border-nude-100 pb-2">Información del Estudio</h4>
+                        <div class="flex items-start space-x-3">
+                            <i class="fa-solid fa-location-dot text-nude-400 mt-1"></i>
+                            <div>
+                                <strong class="block text-gray-700">Dirección:</strong>
+                                <span class="text-gray-500 text-xs">Av. Ríos Rivarola y Dr. Boggino, Villarrica</span>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <i class="fa-brands fa-instagram text-nude-400 mt-1"></i>
+                            <div>
+                                <strong class="block text-gray-700">Instagram:</strong>
+                                <a href="https://instagram.com/byv_ickynails" target="_blank" class="text-xs text-nude-600 hover:underline">@byv_ickynails</a>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <i class="fa-solid fa-clock text-nude-400 mt-1"></i>
+                            <div>
+                                <strong class="block text-gray-700">Atención:</strong>
+                                <span class="text-gray-500 text-xs">Lunes a Sábado - Previa Reserva</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Instant Ticket Card (Shows after submitting) -->
+                    <div id="bookingConfirmationCard" class="hidden bg-white p-5 rounded-2xl border-2 border-nude-300 shadow-md text-sm space-y-3 bg-gradient-to-b from-white to-nude-50">
+                        <div class="flex justify-between items-center border-b border-nude-200 pb-2">
+                            <span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full"><i class="fa-solid fa-circle-check mr-1"></i>¡Turno Solicitado!</span>
+                            <span id="ticketId" class="text-[10px] text-gray-400 font-mono">#VN-000</span>
+                        </div>
+                        <div>
+                            <h4 id="ticketClient" class="font-bold text-gray-800 text-base">Cliente</h4>
+                            <p id="ticketService" class="text-nude-600 text-xs font-semibold">Servicio</p>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl border border-nude-200 space-y-1 text-xs">
+                            <div class="flex justify-between"><span class="text-gray-500">Fecha:</span> <strong id="ticketDate" class="text-gray-800">-</strong></div>
+                            <div class="flex justify-between"><span class="text-gray-500">Hora:</span> <strong id="ticketTime" class="text-gray-800">-</strong></div>
+                            <div class="flex justify-between"><span class="text-gray-500">Ubicación:</span> <span class="text-gray-800 text-[11px]">Av. Ríos Rivarola y Dr. Boggino</span></div>
+                        </div>
+                        <div class="space-y-2 pt-1">
+                            <button onclick="downloadICS()" class="w-full py-2 px-3 bg-white border border-nude-300 hover:bg-nude-100 text-gray-700 rounded-xl text-xs font-medium transition-all flex items-center justify-center space-x-2">
+                                <i class="fa-regular fa-calendar-arrow-down text-nude-500"></i>
+                                <span>Añadir a mi Calendario (.ics)</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== ADMIN VIEW ==================== -->
+        <section id="adminView" class="hidden space-y-6">
+            <!-- Admin Lock Banner -->
+            <div id="adminAuthBanner" class="bg-white rounded-2xl p-6 border border-nude-200 shadow-sm max-w-md mx-auto text-center space-y-4">
+                <div class="w-12 h-12 bg-nude-100 text-nude-600 rounded-full flex items-center justify-center mx-auto text-xl">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <div>
+                    <h3 class="font-playfair font-bold text-lg text-gray-800">Acceso Administradora</h3>
+                    <p class="text-xs text-gray-500 mt-1">Ingresa la clave para gestionar los turnos agendados.</p>
+                </div>
+                <div class="space-y-2">
+                    <input type="password" id="adminPassInput" placeholder="Contraseña de Vicky" class="w-full px-3.5 py-2.5 rounded-xl border border-nude-200 text-sm focus:outline-none focus:ring-2 focus:ring-nude-400">
+                    <button onclick="authenticateAdmin()" class="w-full py-2.5 bg-nude-500 hover:bg-nude-600 text-white rounded-xl text-sm font-medium transition-all">Ingresar al Panel</button>
+                </div>
+            </div>
+
+            <!-- Admin Dashboard Content (Hidden until auth) -->
+            <div id="adminDashboard" class="hidden space-y-6">
+                <!-- Top Metrics -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-white p-4 rounded-2xl border border-nude-200 shadow-sm">
+                        <span class="text-xs text-gray-500 font-medium">Total Turnos</span>
+                        <p id="statTotal" class="text-2xl font-bold text-gray-800 mt-1">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-nude-200 shadow-sm">
+                        <span class="text-xs text-yellow-600 font-medium">Pendientes</span>
+                        <p id="statPending" class="text-2xl font-bold text-yellow-600 mt-1">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-nude-200 shadow-sm">
+                        <span class="text-xs text-green-600 font-medium">Confirmados</span>
+                        <p id="statConfirmed" class="text-2xl font-bold text-green-600 mt-1">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-nude-200 shadow-sm">
+                        <span class="text-xs text-nude-600 font-medium">Completados</span>
+                        <p id="statCompleted" class="text-2xl font-bold text-nude-600 mt-1">0</p>
+                    </div>
+                </div>
+
+                <!-- Controls & Filter Header -->
+                <div class="bg-white p-4 rounded-2xl border border-nude-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-3">
+                    <div class="flex items-center space-x-2 w-full md:w-auto">
+                        <input type="text" id="searchInput" oninput="renderAppointments()" placeholder="Buscar cliente o teléfono..." class="px-3.5 py-2 rounded-xl border border-nude-200 text-xs w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-nude-400">
+                        <select id="filterStatus" onchange="renderAppointments()" class="px-3 py-2 rounded-xl border border-nude-200 text-xs bg-white focus:outline-none">
+                            <option value="ALL">Todos los estados</option>
+                            <option value="Pendiente">Pendientes</option>
+                            <option value="Confirmado">Confirmados</option>
+                            <option value="Completado">Completados</option>
+                            <option value="Cancelado">Cancelados</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center space-x-2 text-xs">
+                        <button onclick="logoutAdmin()" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-all">
+                            <i class="fa-solid fa-right-from-bracket mr-1"></i>Salir
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Appointments List Table / Cards -->
+                <div class="bg-white rounded-2xl border border-nude-200 shadow-sm overflow-hidden">
+                    <div class="px-5 py-4 border-b border-nude-100 flex justify-between items-center">
+                        <h3 class="font-playfair font-bold text-gray-800 text-base">Agenda de Turnos</h3>
+                        <span class="text-xs text-gray-400">Sincronizado en tiempo real</span>
+                    </div>
+
+                    <div id="appointmentsContainer" class="divide-y divide-nude-100">
+                        <!-- Items rendered via JavaScript -->
+                        <div class="p-8 text-center text-gray-400 text-xs">
+                            Cargando turnos agendados...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-nude-200 py-4 mt-8">
+        <div class="max-w-6xl mx-auto px-4 text-center text-xs text-gray-400 space-y-1">
+            <p>© 2026 Vicky Nails. Av. Ríos Rivarola y Dr. Boggino, Villarrica.</p>
+            <p>Diseñado para agendamiento rápido de manicura y estética.</p>
+        </div>
+    </footer>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-gray-800 text-white text-xs px-4 py-3 rounded-xl shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center space-x-2">
+        <i id="toastIcon" class="fa-solid fa-circle-info text-nude-300"></i>
+        <span id="toastMsg">Mensaje de notificación</span>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        // Set minimum date to today
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('appointmentDate').min = today;
+            loadStoredAppointments();
+        });
+
+        // App State
+        let appointments = [];
+        let currentTicketData = null;
+        let isAdminLoggedIn = false;
+
+        // Swapping Views
+        function switchTab(tab) {
+            const clientView = document.getElementById('clientView');
+            const adminView = document.getElementById('adminView');
+            const tabClient = document.getElementById('tabClient');
+            const tabAdmin = document.getElementById('tabAdmin');
+
+            if (tab === 'client') {
+                clientView.classList.remove('hidden');
+                adminView.classList.add('hidden');
+                tabClient.className = 'px-4 py-1.5 rounded-lg text-sm font-medium transition-all shadow-sm bg-white text-nude-600';
+                tabAdmin.className = 'px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-gray-600 hover:text-nude-600';
+            } else {
+                clientView.classList.add('hidden');
+                adminView.classList.remove('hidden');
+                tabAdmin.className = 'px-4 py-1.5 rounded-lg text-sm font-medium transition-all shadow-sm bg-white text-nude-600';
+                tabClient.className = 'px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-gray-600 hover:text-nude-600';
+            }
+        }
+
+        // Form Helpers
+        function updateServiceDetails() {
+            const select = document.getElementById('serviceSelect');
+            const selectedOption = select.options[select.selectedIndex];
+            const box = document.getElementById('serviceSummaryBox');
+            
+            if (selectedOption.value) {
+                const price = parseInt(selectedOption.getAttribute('data-price')).toLocaleString('es-PY');
+                const duration = selectedOption.getAttribute('data-duration');
+                
+                document.getElementById('summaryPrice').innerText = `Gs. ${price}`;
+                document.getElementById('summaryDuration').innerText = `${duration} min`;
+                box.classList.remove('hidden');
+            } else {
+                box.classList.add('hidden');
+            }
+        }
+
+        function validateDate() {
+            const input = document.getElementById('appointmentDate');
+            const selected = new Date(input.value);
+            // If Sunday, optionally warn or allow based on workflow
+        }
+
+        // Handle Booking Submission
+        function handleBookingSubmit(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('clientName').value.trim();
+            const phone = document.getElementById('clientPhone').value.trim();
+            const serviceSelect = document.getElementById('serviceSelect');
+            const service = serviceSelect.value;
+            const price = parseInt(serviceSelect.options[serviceSelect.selectedIndex].getAttribute('data-price'));
+            const date = document.getElementById('appointmentDate').value;
+            const time = document.getElementById('appointmentTime').value;
+            const notes = document.getElementById('clientNotes').value.trim();
+
+            const newAppointment = {
+                id: 'VN-' + Math.floor(1000 + Math.random() * 9000),
+                clientName: name,
+                clientPhone: phone,
+                service: service,
+                price: price,
+                date: date,
+                time: time,
+                notes: notes,
+                status: 'Pendiente',
+                createdAt: new Date().toISOString()
+            };
+
+            appointments.unshift(newAppointment);
+            saveAppointments();
+            
+            // Show Confirmation Ticket
+            currentTicketData = newAppointment;
+            showConfirmationTicket(newAppointment);
+
+            // Reset form
+            document.getElementById('bookingForm').reset();
+            document.getElementById('serviceSummaryBox').classList.add('hidden');
+            showToast('¡Tu turno ha sido solicitado exitosamente!', 'success');
+        }
+
+        function showConfirmationTicket(data) {
+            document.getElementById('ticketId').innerText = `#${data.id}`;
+            document.getElementById('ticketClient').innerText = data.clientName;
+            document.getElementById('ticketService').innerText = `${data.service} (Gs. ${data.price.toLocaleString('es-PY')})`;
+            document.getElementById('ticketDate').innerText = formatDate(data.date);
+            document.getElementById('ticketTime').innerText = `${data.time} Hs`;
+
+            const card = document.getElementById('bookingConfirmationCard');
+            card.classList.remove('hidden');
+            card.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // ICS File Generation for Client
+        function downloadICS() {
+            if (!currentTicketData) return;
+
+            const title = `Turno Vicky Nails - ${currentTicketData.service}`;
+            const description = `Cita de manicura para ${currentTicketData.clientName}. Dirección: Av. Ríos Rivarola y Dr. Boggino, Villarrica.`;
+            const location = `Av. Ríos Rivarola y Dr. Boggino, Villarrica`;
+            
+            const startDateStr = currentTicketData.date.replace(/-/g, '');
+            const timeStr = currentTicketData.time.replace(':', '') + '00';
+            const startFull = `${startDateStr}T${timeStr}`;
+
+            const icsContent = 
+`BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Vicky Nails//Agendamiento//ES
+BEGIN:VEVENT
+SUMMARY:${title}
+DESCRIPTION:${description}
+LOCATION:${location}
+DTSTART:${startFull}
+DTEND:${startFull}
+BEGIN:VALARM
+TRIGGER:-PT2H
+ACTION:DISPLAY
+DESCRIPTION:Recordatorio de Turno en Vicky Nails
+END:VALARM
+END:VEVENT
+END:VCALENDAR`;
+
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.setAttribute('download', `turno-vicky-nails-${currentTicketData.date}.ics`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Storage Management (LocalStorage with default sample data)
+        function loadStoredAppointments() {
+            const stored = localStorage.getItem('vicky_nails_appointments');
+            if (stored) {
+                appointments = JSON.parse(stored);
+            } else {
+                // Initial demo data
+                appointments = [
+                    {
+                        id: 'VN-1024',
+                        clientName: 'Ana Benítez',
+                        clientPhone: '0984123456',
+                        service: 'Soft Gel',
+                        price: 60000,
+                        date: new Date().toISOString().split('T')[0],
+                        time: '14:00',
+                        notes: 'Uñas almendradas nude con glitter',
+                        status: 'Confirmado',
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        id: 'VN-1025',
+                        clientName: 'Sofía Martínez',
+                        clientPhone: '0971987654',
+                        service: 'Capping Gel',
+                        price: 75000,
+                        date: new Date().toISOString().split('T')[0],
+                        time: '16:00',
+                        notes: 'Diseño minimalista francés',
+                        status: 'Pendiente',
+                        createdAt: new Date().toISOString()
+                    }
+                ];
+                saveAppointments();
+            }
+            renderAppointments();
+        }
+
+        function saveAppointments() {
+            localStorage.setItem('vicky_nails_appointments', JSON.stringify(appointments));
+            renderAppointments();
+        }
+
+        // Admin Auth
+        function authenticateAdmin() {
+            const input = document.getElementById('adminPassInput').value;
+            // Simple default key for Vicky
+            if (input === 'vicky123' || input === 'admin') {
+                isAdminLoggedIn = true;
+                document.getElementById('adminAuthBanner').classList.add('hidden');
+                document.getElementById('adminDashboard').classList.remove('hidden');
+                showToast('Sesión de administración iniciada', 'info');
+                renderAppointments();
+            } else {
+                showToast('Contraseña incorrecta', 'error');
+            }
+        }
+
+        function logoutAdmin() {
+            isAdminLoggedIn = false;
+            document.getElementById('adminAuthBanner').classList.remove('hidden');
+            document.getElementById('adminDashboard').classList.add('hidden');
+            document.getElementById('adminPassInput').value = '';
+        }
+
+        // Admin Dashboard Render & Actions
+        function renderAppointments() {
+            const container = document.getElementById('appointmentsContainer');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const filter = document.getElementById('filterStatus').value;
+
+            // Stats calculation
+            let pendingCount = 0, confirmedCount = 0, completedCount = 0;
+            appointments.forEach(a => {
+                if (a.status === 'Pendiente') pendingCount++;
+                if (a.status === 'Confirmado') confirmedCount++;
+                if (a.status === 'Completado') completedCount++;
+            });
+
+            document.getElementById('statTotal').innerText = appointments.length;
+            document.getElementById('statPending').innerText = pendingCount;
+            document.getElementById('statConfirmed').innerText = confirmedCount;
+            document.getElementById('statCompleted').innerText = completedCount;
+
+            // Filter items
+            const filtered = appointments.filter(a => {
+                const matchesSearch = a.clientName.toLowerCase().includes(search) || a.clientPhone.includes(search);
+                const matchesFilter = filter === 'ALL' || a.status === filter;
+                return matchesSearch && matchesFilter;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="p-8 text-center text-gray-400 text-xs">No se encontraron turnos agendados.</div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(app => {
+                const statusColors = {
+                    'Pendiente': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+                    'Confirmado': 'bg-green-100 text-green-700 border-green-200',
+                    'Completado': 'bg-blue-100 text-blue-700 border-blue-200',
+                    'Cancelado': 'bg-red-100 text-red-700 border-red-200'
+                };
+
+                return `
+                    <div class="p-4 md:p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:bg-nude-50/50 transition-all">
+                        <div class="space-y-1">
+                            <div class="flex items-center space-x-2">
+                                <span class="font-bold text-gray-800 text-sm">${app.clientName}</span>
+                                <span class="text-[11px] px-2 py-0.5 rounded-full border ${statusColors[app.status] || 'bg-gray-100'} font-semibold">${app.status}</span>
+                                <span class="text-[10px] text-gray-400 font-mono">#${app.id}</span>
+                            </div>
+                            <div class="text-xs text-gray-600 flex flex-wrap gap-x-4 gap-y-1">
+                                <span><i class="fa-regular fa-bookmark text-nude-400 mr-1"></i><strong>${app.service}</strong> (Gs. ${app.price.toLocaleString('es-PY')})</span>
+                                <span><i class="fa-regular fa-calendar text-nude-400 mr-1"></i>${formatDate(app.date)} - <strong>${app.time} Hs</strong></span>
+                                <span><i class="fa-solid fa-phone text-nude-400 mr-1"></i>${app.clientPhone}</span>
+                            </div>
+                            ${app.notes ? `<p class="text-xs text-gray-500 italic bg-white p-2 rounded-lg border border-nude-100 mt-1"><i class="fa-regular fa-comment-dots mr-1"></i>"${app.notes}"</p>` : ''}
+                        </div>
+
+                        <!-- Action buttons -->
+                        <div class="flex items-center space-x-2 w-full md:w-auto justify-end border-t md:border-t-0 pt-2 md:pt-0 border-nude-100">
+                            <!-- Change status -->
+                            <select onchange="changeStatus('${app.id}', this.value)" class="px-2.5 py-1.5 rounded-lg border border-nude-200 text-xs bg-white focus:outline-none">
+                                <option value="Pendiente" ${app.status === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+                                <option value="Confirmado" ${app.status === 'Confirmado' ? 'selected' : ''}>Confirmado</option>
+                                <option value="Completado" ${app.status === 'Completado' ? 'selected' : ''}>Completado</option>
+                                <option value="Cancelado" ${app.status === 'Cancelado' ? 'selected' : ''}>Cancelado</option>
+                            </select>
+
+                            <!-- Send WhatsApp Reminder -->
+                            <button onclick="sendWhatsAppReminder('${app.id}')" title="Enviar recordatorio por WhatsApp" class="p-2 bg-green-50 hover:bg-green-100 text-green-600 border border-green-200 rounded-lg text-xs font-medium transition-all flex items-center space-x-1">
+                                <i class="fa-brands fa-whatsapp text-sm"></i>
+                                <span class="hidden md:inline">Recordatorio</span>
+                            </button>
+
+                            <!-- Add to Admin Google Calendar -->
+                            <button onclick="addToGoogleCalendar('${app.id}')" title="Guardar en mi Google Calendar" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 rounded-lg text-xs font-medium transition-all">
+                                <i class="fa-regular fa-calendar-plus"></i>
+                            </button>
+
+                            <!-- Delete -->
+                            <button onclick="deleteAppointment('${app.id}')" title="Eliminar turno" class="p-2 bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 rounded-lg text-xs font-medium transition-all">
+                                <i class="fa-regular fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function changeStatus(id, newStatus) {
+            const app = appointments.find(a => a.id === id);
+            if (app) {
+                app.status = newStatus;
+                saveAppointments();
+                showToast(`Estado actualizado a ${newStatus}`, 'info');
+            }
+        }
+
+        function deleteAppointment(id) {
+            if (confirm('¿Estás segura de eliminar este turno?')) {
+                appointments = appointments.filter(a => a.id !== id);
+                saveAppointments();
+                showToast('Turno eliminado', 'error');
+            }
+        }
+
+        // Reminders & External Actions
+        function sendWhatsAppReminder(id) {
+            const app = appointments.find(a => a.id === id);
+            if (!app) return;
+
+            // Formatted phone number (stripping spaces/dashes)
+            let cleanPhone = app.clientPhone.replace(/\D/g, '');
+            if (cleanPhone.startsWith('0')) cleanPhone = '595' + cleanPhone.substring(1);
+
+            const text = `¡Hola ${app.clientName}! 💅 Te saluda Vicky Nails. Te recuerdo tu turno agendado de *${app.service}* para el día *${formatDate(app.date)}* a las *${app.time} Hs* en Av. Ríos Rivarola y Dr. Boggino, Villarrica. ¿Me confirmas tu asistencia?✨`;
+            
+            const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+        }
+
+        function addToGoogleCalendar(id) {
+            const app = appointments.find(a => a.id === id);
+            if (!app) return;
+
+            const title = encodeURIComponent(`Nails: ${app.clientName} (${app.service})`);
+            const details = encodeURIComponent(`Cliente: ${app.clientName}\nTeléfono: ${app.clientPhone}\nServicio: ${app.service}\nPrecio: Gs. ${app.price.toLocaleString('es-PY')}\nNotas: ${app.notes || 'Sin notas'}`);
+            const location = encodeURIComponent(`Av. Ríos Rivarola y Dr. Boggino, Villarrica`);
+            
+            const dateClean = app.date.replace(/-/g, '');
+            const timeClean = app.time.replace(':', '') + '00';
+            const dates = `${dateClean}T${timeClean}/${dateClean}T${timeClean}`;
+
+            const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&location=${location}&dates=${dates}`;
+            window.open(url, '_blank');
+        }
+
+        // Utilities
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        function showToast(msg, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.innerText = msg;
+            
+            if (type === 'success') toastIcon.className = 'fa-solid fa-circle-check text-green-400';
+            else if (type === 'error') toastIcon.className = 'fa-solid fa-triangle-exclamation text-red-400';
+            else toastIcon.className = 'fa-solid fa-circle-info text-nude-300';
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
